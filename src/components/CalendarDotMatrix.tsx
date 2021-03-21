@@ -15,7 +15,13 @@ import { perfumes, perfumeCatgories } from "../test-data";
 import { colors } from "../colors";
 import { Square } from "./Square";
 import "../styles.css";
-import { differenceInCalendarWeeks, getWeeksInMonth, isAfter } from "date-fns";
+import {
+  differenceInCalendarWeeks,
+  endOfWeek,
+  getWeeksInMonth,
+  isAfter,
+  isBefore,
+} from "date-fns";
 
 const styles = {
   label: {
@@ -112,42 +118,23 @@ const mapData = <C extends readonly string[]>(colors: C) => <
 const renderWeek = (mappedData: MappedData) => (
   startDate: Date,
   endDate: Date,
-  weekIndex?: "first" | "last",
 ) => (xOffset = 0, yOffset = 0) => {
   const firstDayOfWeek = startOfWeek(startDate, {
     weekStartsOn: config.startOfWeek,
   });
-  const range = differenceInDays(endDate, startDate);
-  if (range < 0) {
-    console.log([endDate, startDate]);
-    return;
-  }
-  const week = Array(range)
+  const week = Array(7)
     .fill(null)
     .map((_, idx) => {
       const day = addDays(firstDayOfWeek, idx);
-      if (weekIndex === "first") {
-        //console.log("first dayy of week: ", firstDayOfWeek.toString());
-        if (
-          differenceInDays(firstDayOfWeek, day) >=
-          differenceInDays(firstDayOfWeek, startDate)
-        ) {
-          return null;
-        }
+      if (isBefore(day, startDate)) {
+        return null;
       }
-      // else if (weekIndex === "last") {
-      //   if (
-      //       differenceInDays(firstDayOfWeek, day) >=
-      //       differenceInDays(firstDayOfWeek, startDate)
-      //   ) {
-      //     return null;
-      //   }
-      // }
+      if (isAfter(day, endDate)) {
+        return null;
+      }
       const dayColor =
         (mappedData[day.toLocaleDateString()] || {}).color || "#ccc";
       const dayTitle = (mappedData[day.toLocaleDateString()] || {}).title || "";
-      // console.log(day.toLocaleDateString());
-      // console.log(dayColor);
       return (
         <Square
           key={idx}
@@ -175,41 +162,52 @@ interface CalendarDotMatrixProps<T extends Data> {
 const renderWeeks = <T extends Data>(args: CalendarDotMatrixProps<T>) => {
   const { startDate, endDate, data, keyName, tooltip } = args;
   const mappedData = mapData(colors)(data, keyName, tooltip);
-  const weekCount = differenceInCalendarWeeks(endDate, startDate, {
-    weekStartsOn: config.startOfWeek,
-  });
+  const weekCount =
+    differenceInWeeks(
+      endOfWeek(endDate, {
+        weekStartsOn: config.startOfWeek,
+      }),
+      startOfWeek(startDate, {
+        weekStartsOn: config.startOfWeek,
+      }),
+    ) + 1;
+  console.log(weekCount);
   return Array(weekCount)
     .fill(null)
     .map((_, idx) => {
-      const weekStartDate = addDays(startDate, idx * config.daysInWeek);
-      const weekFromWeekStartDate = addDays(weekStartDate, config.daysInWeek);
-      // const weekEndDate = isAfter(weekFromWeekStartDate, endDate)
-      //   ? endDate
-      //   : weekFromWeekStartDate;
-      const weekEndDate = weekFromWeekStartDate;
-      if (idx === weekCount - 1) {
-        console.log("weekStartDate = ", weekStartDate);
-        console.log("weekFromWeekStartDate = ", weekFromWeekStartDate);
-        console.log("weekEndDate = ", weekEndDate);
-        console.log(addDays(startDate, (idx - 1) * config.daysInWeek));
-      }
-      // if (isAfter(weekStartDate, weekEndDate)) {
-      //   return null;
-      // }
+      const startWeek =
+        idx === 0
+          ? startDate
+          : addDays(
+              startOfWeek(startDate, {
+                weekStartsOn: config.startOfWeek,
+              }),
+              7 * idx,
+            );
+      const endWeek =
+        idx === 0
+          ? endOfWeek(startDate, {
+              weekStartsOn: config.startOfWeek,
+            })
+          : idx === weekCount - 1
+          ? endDate
+          : addDays(
+              endOfWeek(startDate, {
+                weekStartsOn: config.startOfWeek,
+              }),
+              7 * idx,
+            );
       return (
         <Fragment key={idx}>
-          {renderWeek(mappedData)(
-            weekStartDate,
-            weekEndDate,
-            idx === 0 ? "first" : idx === weekCount - 1 ? "last" : undefined,
-          )((config.squareSize + config.squarePadding) * idx)}
+          {renderWeek(mappedData)(startWeek, endWeek)(
+            (config.squareSize + config.squarePadding) * idx,
+          )}
         </Fragment>
       );
     });
 };
 
 const renderWeekLabels = ({ weekLabel }: { weekLabel: WeekLabel }) => {
-  console.log(weekLabel);
   return Array(config.daysInWeek)
     .fill(null)
     .map((_, idx) => {
@@ -278,13 +276,13 @@ const CalendarDotMatrix = <T extends Data>({
   weekLabel = (day) => config.weekLabels[day],
 }: CalendarDotMatrixProps<T>) => {
   const weekCount = differenceInCalendarWeeks(endDate, startDate) + 1;
-  console.log(weekCount);
   const rect = (
     <svg
       className={"react-calendar-dot-matrix-chart"}
       viewBox={`0 0 ${
         weekCount * (config.squareSize + config.squarePadding) +
-        config.squarePadding * 12
+        config.squarePadding * 12 +
+        50
       } ${
         config.daysInWeek * (config.squareSize + config.squarePadding + 1) +
         config.squareSize
@@ -316,7 +314,7 @@ export const Display: React.FC = () => (
   <div>
     <CalendarDotMatrix
       startDate={new Date("2020-04-21")}
-      endDate={new Date("2021-04-23")}
+      endDate={new Date("2021-04-15")}
       data={perfumes}
       keyName={"name"}
       tooltip={(data) => `${formatDate(data.date)}: ${data.name}`}
