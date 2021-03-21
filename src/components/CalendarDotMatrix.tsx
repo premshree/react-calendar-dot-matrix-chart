@@ -22,12 +22,13 @@ import {
   isAfter,
   isBefore,
 } from "date-fns";
+import { range } from "../utils";
 
 const styles = {
   label: {
-    fontFamily: "sans-serif",
+    fontFamily: "Helvetica",
     fill: "#ccc",
-    fontSize: "0.4em",
+    fontSize: "0.3em",
   },
 };
 
@@ -122,30 +123,28 @@ const renderWeek = (mappedData: MappedData) => (
   const firstDayOfWeek = startOfWeek(startDate, {
     weekStartsOn: config.startOfWeek,
   });
-  const week = Array(7)
-    .fill(null)
-    .map((_, idx) => {
-      const day = addDays(firstDayOfWeek, idx);
-      if (isBefore(day, startDate)) {
-        return null;
-      }
-      if (isAfter(day, endDate)) {
-        return null;
-      }
-      const dayColor =
-        (mappedData[day.toLocaleDateString()] || {}).color || "#ccc";
-      const dayTitle = (mappedData[day.toLocaleDateString()] || {}).title || "";
-      return (
-        <Square
-          key={idx}
-          x={xOffset}
-          y={(yOffset + config.squareSize + config.squarePadding) * idx}
-          fillColor={dayColor}
-          title={dayTitle}
-          value={day.getDate()}
-        />
-      );
-    });
+  const week = range(config.daysInWeek).map((_, idx) => {
+    const day = addDays(firstDayOfWeek, idx);
+    if (isBefore(day, startDate)) {
+      return null;
+    }
+    if (isAfter(day, endDate)) {
+      return null;
+    }
+    const dayColor =
+      (mappedData[day.toLocaleDateString()] || {}).color || "#ccc";
+    const dayTitle = (mappedData[day.toLocaleDateString()] || {}).title || "";
+    return (
+      <Square
+        key={idx}
+        x={xOffset}
+        y={(yOffset + config.squareSize + config.squarePadding) * idx}
+        fillColor={dayColor}
+        title={dayTitle}
+        value={day.getDate()}
+      />
+    );
+  });
   return <>{week}</>;
 };
 
@@ -171,60 +170,55 @@ const renderWeeks = <T extends Data>(args: CalendarDotMatrixProps<T>) => {
         weekStartsOn: config.startOfWeek,
       }),
     ) + 1;
-  console.log(weekCount);
-  return Array(weekCount)
-    .fill(null)
-    .map((_, idx) => {
-      const startWeek =
-        idx === 0
-          ? startDate
-          : addDays(
-              startOfWeek(startDate, {
-                weekStartsOn: config.startOfWeek,
-              }),
-              7 * idx,
-            );
-      const endWeek =
-        idx === 0
-          ? endOfWeek(startDate, {
+  return range(weekCount).map((_, idx) => {
+    const startWeek =
+      idx === 0
+        ? startDate
+        : addDays(
+            startOfWeek(startDate, {
               weekStartsOn: config.startOfWeek,
-            })
-          : idx === weekCount - 1
-          ? endDate
-          : addDays(
-              endOfWeek(startDate, {
-                weekStartsOn: config.startOfWeek,
-              }),
-              7 * idx,
-            );
-      return (
-        <Fragment key={idx}>
-          {renderWeek(mappedData)(startWeek, endWeek)(
-            (config.squareSize + config.squarePadding) * idx,
-          )}
-        </Fragment>
-      );
-    });
+            }),
+            7 * idx,
+          );
+    const endWeek =
+      idx === 0
+        ? endOfWeek(startDate, {
+            weekStartsOn: config.startOfWeek,
+          })
+        : idx === weekCount - 1
+        ? endDate
+        : addDays(
+            endOfWeek(startDate, {
+              weekStartsOn: config.startOfWeek,
+            }),
+            7 * idx,
+          );
+    return (
+      <Fragment key={idx}>
+        {renderWeek(mappedData)(startWeek, endWeek)(
+          (config.squareSize + config.squarePadding) * idx,
+        )}
+      </Fragment>
+    );
+  });
 };
 
 const renderWeekLabels = ({ weekLabel }: { weekLabel: WeekLabel }) => {
-  return Array(config.daysInWeek)
-    .fill(null)
-    .map((_, idx) => {
-      return (
-        <Fragment key={idx}>
-          <text
-            x={0}
-            y={(config.squareSize + config.squarePadding) * idx}
-            width={config.squareSize}
-            height={config.squareSize}
-            style={styles.label}
-          >
-            {weekLabel(idx)}
-          </text>
-        </Fragment>
-      );
-    });
+  return range(config.daysInWeek).map((_, idx) => {
+    return (
+      <Fragment key={idx}>
+        <text
+          x={0}
+          y={(config.squareSize + config.squarePadding) * idx}
+          width={config.squareSize}
+          height={config.squareSize}
+          style={styles.label}
+        >
+          {weekLabel(idx)}
+        </text>
+      </Fragment>
+    );
+  });
 };
 
 const renderMonthLabels = ({
@@ -236,34 +230,43 @@ const renderMonthLabels = ({
   endDate: Date;
   monthLabel: MonthLabel;
 }) => {
-  const monthCount = differenceInMonths(endDate, startDate);
-  return Array(monthCount)
-    .fill(null)
-    .map((_, idx) => {
-      const currMonth = startOfMonth(addMonths(startDate, idx));
-      const weeksSinceStartDate = Math.abs(
-        differenceInWeeks(currMonth, startDate),
-      );
-      const weeksInMonth = getWeeksInMonth(currMonth);
-      const weeksLeftSinceStartDate = weeksSinceStartDate - weeksInMonth;
-      console.log(weeksLeftSinceStartDate);
-      if (weeksSinceStartDate < 0) {
-        return null;
-      }
-      return (
+  const weekCount =
+    differenceInWeeks(
+      endOfWeek(endDate, {
+        weekStartsOn: config.startOfWeek,
+      }),
+      startOfWeek(startDate, {
+        weekStartsOn: config.startOfWeek,
+      }),
+    ) + 1;
+  return range(weekCount).map((_, idx) => {
+    const endWeek =
+      idx === 0
+        ? endOfWeek(startDate, { weekStartsOn: config.startOfWeek })
+        : addDays(
+            endOfWeek(startDate, {
+              weekStartsOn: config.startOfWeek,
+            }),
+            7 * idx,
+          );
+    console.log("START WEEK: ", endWeek);
+
+    const label =
+      endWeek.getDate() >= 1 && endWeek.getDate() <= config.daysInWeek ? (
         <Fragment key={idx}>
           <text
-            x={(config.squareSize + 1) * weeksSinceStartDate}
+            x={(config.squareSize + config.squarePadding) * (idx + 2)}
             y={10}
             width={config.squareSize}
             height={config.squareSize}
             style={styles.label}
           >
-            {monthLabel(getMonth(currMonth))}
+            {monthLabel(getMonth(endWeek))}
           </text>
         </Fragment>
-      );
-    });
+      ) : null;
+    return label;
+  });
 };
 
 const CalendarDotMatrix = <T extends Data>({
@@ -314,17 +317,17 @@ export const Display: React.FC = () => (
   <div>
     <CalendarDotMatrix
       startDate={new Date("2020-04-21")}
-      endDate={new Date("2021-04-15")}
+      endDate={new Date("2021-03-14")}
       data={perfumes}
       keyName={"name"}
       tooltip={(data) => `${formatDate(data.date)}: ${data.name}`}
     />
-    {/*<CalendarDotMatrix*/}
-    {/*  startDate={new Date("2020-03-21")}*/}
-    {/*  endDate={new Date("2021-04-15")}*/}
-    {/*  data={perfumeCatgories}*/}
-    {/*  keyName={"category"}*/}
-    {/*  tooltip={(data) => `${formatDate(data.date)}: ${data.category}`}*/}
-    {/*/>*/}
+    <CalendarDotMatrix
+      startDate={new Date("2020-04-21")}
+      endDate={new Date("2021-03-14")}
+      data={perfumeCatgories}
+      keyName={"category"}
+      tooltip={(data) => `${formatDate(data.date)}: ${data.category}`}
+    />
   </div>
 );
