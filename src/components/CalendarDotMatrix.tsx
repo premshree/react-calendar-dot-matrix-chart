@@ -1,13 +1,8 @@
 import * as React from "react";
 import startOfWeek from "date-fns/startOfWeek";
-import endOfMonth from "date-fns/endOfMonth";
-import startOfMonth from "date-fns/startOfMonth";
 import addDays from "date-fns/addDays";
 import format from "date-fns/format";
 import differenceInWeeks from "date-fns/differenceInWeeks";
-import differenceInDays from "date-fns/differenceInDays";
-import differenceInMonths from "date-fns/differenceInMonths";
-import addMonths from "date-fns/addMonths";
 import getMonth from "date-fns/getMonth";
 
 import config from "../config";
@@ -18,7 +13,6 @@ import "../styles.css";
 import {
   differenceInCalendarWeeks,
   endOfWeek,
-  getWeeksInMonth,
   isAfter,
   isBefore,
 } from "date-fns";
