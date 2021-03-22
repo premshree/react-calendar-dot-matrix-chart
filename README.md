@@ -5,6 +5,7 @@ visualize distribution of multiple discreet elements on a calendar-like interfac
 
 ![react-calendar-dot-matrix-chart screenshot](public/react-calendar-dot-matrix.png?raw=true)
 
+WIP
 
 ### Also See
 
